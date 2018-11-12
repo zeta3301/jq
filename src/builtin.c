@@ -43,6 +43,7 @@ void *alloca (size_t);
 #include "jv_unicode.h"
 #include "jv_alloc.h"
 
+#include "jq_sh.h"
 
 static jv type_error(jv bad, const char* msg) {
   char errbuf[15];
@@ -1561,6 +1562,27 @@ static jv f_current_line(jq_state *jq, jv a) {
   return jq_util_input_get_current_line(jq);
 }
 
+static jv f_sh_json(jq_state *jq, jv input, jv cmd) {
+  jv_free(input);
+  if (jv_get_kind(cmd) != JV_KIND_STRING) {
+    return ret_error(cmd, jv_string("sh argument must be string"));
+  }
+  const char *cmdstr = jv_string_value(cmd);
+  jv r = jq_sh(cmdstr, 0);
+  jv_free(cmd);
+  return r;
+}
+static jv f_sh_str(jq_state *jq, jv input, jv cmd) {
+  jv_free(input);
+  if (jv_get_kind(cmd) != JV_KIND_STRING) {
+    return ret_error(cmd, jv_string("sh argument must be string"));
+  }
+  const char *cmdstr = jv_string_value(cmd);
+  jv r = jq_sh(cmdstr, 1);
+  jv_free(cmd);
+  return r;
+}
+
 #define LIBM_DD(name) \
   {(cfunction_ptr)f_ ## name,  #name, 1},
 #define LIBM_DD_NO(name)
@@ -1652,6 +1674,9 @@ static const struct cfunction function_list[] = {
   {(cfunction_ptr)f_now, "now", 1},
   {(cfunction_ptr)f_current_filename, "input_filename", 1},
   {(cfunction_ptr)f_current_line, "input_line_number", 1},
+  {(cfunction_ptr)f_sh_json, "sh_json", 2},
+  {(cfunction_ptr)f_sh_json, "sh", 2},
+  {(cfunction_ptr)f_sh_str, "sh_text", 2},
 };
 #undef LIBM_DDDD_NO
 #undef LIBM_DDD_NO
