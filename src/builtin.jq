@@ -309,3 +309,11 @@ def JOIN($idx; stream; idx_expr; join_expr):
   stream | [., $idx[idx_expr]] | join_expr;
 def IN(s): reduce (first(select(. == s)) | true) as $v (false; if . or $v then true else false end);
 def IN(src; s): reduce (src|IN(s)) as $v (false; if . or $v then true else false end);
+
+# sh related
+def sh: sh(.);
+def sh_json: sh_json(.);
+def sh_text: sh_text(.);
+def qsh: qsh(.);
+def qsh_json: qsh_json(.);
+def qsh_text: qsh_text(.);
