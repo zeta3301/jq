@@ -8,7 +8,94 @@
 #include <string.h>
 #include <unistd.h>
 #include "jv_unicode.h"
+#include "jv_alloc.h"
 
+const char *JQ_SH_EXTRACT_CMDSTR_ERRMSG = "sh argument must be string or array";
+
+static char *clone_str(const char *src) {
+  int len = strlen(src);
+  char *buff = jv_mem_calloc(len+1, sizeof(char));
+  strcpy(buff, src);
+  return buff;
+}
+
+static void copy_str(char **target, int index, const char *src) {
+  target[index] = clone_str(src);
+}
+
+/** caller should free the pointer with jv_mem_free */
+char *jq_sh_extract_cmdstr(jv cmd) {
+  switch (jv_get_kind(cmd)) {
+  case JV_KIND_STRING: return clone_str(jv_string_value(cmd));
+  case JV_KIND_ARRAY: {
+    int argc = jv_array_length(jv_copy(cmd)), i, j;
+    char **argv = jv_mem_calloc(argc, sizeof(char*));
+    char **escaped_argv = jv_mem_calloc(argc, sizeof(char*));
+
+    // collect stringified arguments into to argv
+    for (i=0;i<argc;++i) {
+      jv val = jv_array_get(jv_copy(cmd), i);
+      jv_kind kind = jv_get_kind(val);
+      if (kind == JV_KIND_STRING) {
+        copy_str(argv, i, jv_string_value(val));
+      } else {
+        jv str = jv_dump_string(jv_copy(val), 0);
+        copy_str(argv, i, jv_string_value(str));
+        jv_free(str);
+      }
+      jv_free(val);
+    }
+
+    // result length
+    int rlen = 0;
+
+    // escape single quotes in argv, saving results to escaped_argv
+    // free memory claimed by argv and each of its element also
+    //
+    // each single quote is translated to '\'' (four characters in total)
+    for (i=0;i<argc;++i) {
+      char *arg = argv[i];
+      int len = strlen(arg);
+      int escaped_len = len + 2;
+      for (j=0;j<len;++j) if (arg[j] == '\'') escaped_len += 3;
+      char *buff = escaped_argv[i] = jv_mem_calloc(escaped_len+1, sizeof(char));
+      int off = 0;
+      buff[off++] = '\'';
+      for (j=0;j<len;++j) {
+        char orig = arg[j];
+        if (orig == '\'') { buff[off++] = '\''; buff[off++] = '\\'; buff[off++] = '\''; buff[off++] = '\''; }
+        else { buff[off++] = orig; }
+      }
+      buff[off++] = '\'';
+      buff[off++] = '\0';
+      rlen += escaped_len + 1;  // the +1 at the ends counts for the separator for joining later
+
+      jv_mem_free(arg);
+    }
+    jv_mem_free(argv);
+
+    // join esaped_argv into rbuff, separated by single space
+    // free memory claimed by escaped_argv and each of its element also
+    char *rbuff = jv_mem_calloc(rlen+1, sizeof(char)); int off = 0;
+    for (i=0;i<argc;++i) {
+      char *arg = escaped_argv[i];
+      int len = strlen(arg);
+      for (j=0;j<len;++j) rbuff[off++] = arg[j];
+      rbuff[off++] = ' ';
+
+      jv_mem_free(arg);
+    } rbuff[off++] = '\0';
+    jv_mem_free(escaped_argv);
+
+    return rbuff;
+  }
+
+  // we return NULL as the indication of a kind error. see also JQ_SH_EXTRACT_CMDSTR_ERRMSG
+  default: return NULL;
+  }
+}
+
+// adopted from jv_load_file
 jv jq_sh(const char *cmd, int raw) {
   FILE* pipe = popen(cmd, "r");
   if (pipe == NULL) {

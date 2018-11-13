@@ -1564,21 +1564,20 @@ static jv f_current_line(jq_state *jq, jv a) {
 
 static jv f_sh_json(jq_state *jq, jv input, jv cmd) {
   jv_free(input);
-  if (jv_get_kind(cmd) != JV_KIND_STRING) {
-    return ret_error(cmd, jv_string("sh argument must be string"));
-  }
-  const char *cmdstr = jv_string_value(cmd);
+  char *cmdstr = jq_sh_extract_cmdstr(cmd);
+  if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
   jv r = jq_sh(cmdstr, 0);
+  jv_mem_free(cmdstr);
   jv_free(cmd);
   return r;
 }
+
 static jv f_sh_str(jq_state *jq, jv input, jv cmd) {
   jv_free(input);
-  if (jv_get_kind(cmd) != JV_KIND_STRING) {
-    return ret_error(cmd, jv_string("sh argument must be string"));
-  }
-  const char *cmdstr = jv_string_value(cmd);
+  char *cmdstr = jq_sh_extract_cmdstr(cmd);
+  if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
   jv r = jq_sh(cmdstr, 1);
+  jv_mem_free(cmdstr);
   jv_free(cmd);
   return r;
 }
