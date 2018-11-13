@@ -1566,7 +1566,7 @@ static jv f_sh_json(jq_state *jq, jv input, jv cmd) {
   jv_free(input);
   char *cmdstr = jq_sh_extract_cmdstr(cmd);
   if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
-  jv r = jq_sh(cmdstr, 0);
+  jv r = jq_sh(cmdstr, 0, 1);
   jv_mem_free(cmdstr);
   jv_free(cmd);
   return r;
@@ -1576,7 +1576,27 @@ static jv f_sh_str(jq_state *jq, jv input, jv cmd) {
   jv_free(input);
   char *cmdstr = jq_sh_extract_cmdstr(cmd);
   if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
-  jv r = jq_sh(cmdstr, 1);
+  jv r = jq_sh(cmdstr, 1, 1);
+  jv_mem_free(cmdstr);
+  jv_free(cmd);
+  return r;
+}
+
+static jv f_qsh_json(jq_state *jq, jv input, jv cmd) {
+  jv_free(input);
+  char *cmdstr = jq_sh_extract_cmdstr(cmd);
+  if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
+  jv r = jq_sh(cmdstr, 0, 0);
+  jv_mem_free(cmdstr);
+  jv_free(cmd);
+  return r;
+}
+
+static jv f_qsh_str(jq_state *jq, jv input, jv cmd) {
+  jv_free(input);
+  char *cmdstr = jq_sh_extract_cmdstr(cmd);
+  if ((cmdstr) == NULL) return ret_error(cmd, jv_string(JQ_SH_EXTRACT_CMDSTR_ERRMSG));
+  jv r = jq_sh(cmdstr, 1, 0);
   jv_mem_free(cmdstr);
   jv_free(cmd);
   return r;
@@ -1676,6 +1696,9 @@ static const struct cfunction function_list[] = {
   {(cfunction_ptr)f_sh_json, "sh_json", 2},
   {(cfunction_ptr)f_sh_json, "sh", 2},
   {(cfunction_ptr)f_sh_str, "sh_text", 2},
+  {(cfunction_ptr)f_qsh_json, "qsh_json", 2},
+  {(cfunction_ptr)f_qsh_json, "qsh", 2},
+  {(cfunction_ptr)f_qsh_str, "qsh_text", 2},
 };
 #undef LIBM_DDDD_NO
 #undef LIBM_DDD_NO

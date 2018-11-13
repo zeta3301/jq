@@ -96,7 +96,12 @@ char *jq_sh_extract_cmdstr(jv cmd) {
 }
 
 // adopted from jv_load_file
-jv jq_sh(const char *cmd, int raw) {
+jv jq_sh(const char *cmd, int raw, int verbose) {
+  if (verbose) {
+    fprintf(stderr, "executing shell command: %s\n", cmd);
+    fflush(stderr);
+  }
+
   FILE* pipe = popen(cmd, "r");
   if (pipe == NULL) {
     return jv_invalid_with_msg(jv_string_fmt("Could not run command: %s\n %s",
