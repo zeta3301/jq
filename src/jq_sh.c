@@ -97,10 +97,6 @@ char *jq_sh_extract_cmdstr(jv cmd) {
 
 // adopted from jv_load_file
 jv jq_sh(const char *cmd, int raw, int verbose) {
-  if (verbose) {
-    fprintf(stderr, "executing shell command: %s\n", cmd);
-    fflush(stderr);
-  }
 
   FILE* pipe = popen(cmd, "r");
   if (pipe == NULL) {
@@ -153,19 +149,5 @@ jv jq_sh(const char *cmd, int raw, int verbose) {
       jv_parser_free(parser);
   int badread = ferror(pipe);
   int status, rc;
-  if ((status = pclose(pipe)) != 0 || badread) {
-    jv_free(data);
-    if (status == ECHILD) {
-      return jv_invalid_with_msg(jv_string_fmt("Cannot obtain exit code executing command: %s",
-                                               cmd));
-    } else if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
-      return jv_invalid_with_msg(jv_string_fmt("Exit code (%d) isn't zero executing command: %s",
-                                               rc, cmd));
-    } else {
-      return jv_invalid_with_msg(jv_string_fmt("Error executing command: %s\n %s",
-                                               cmd,
-                                               strerror(errno)));
-    }
-  }
   return data;
 }
